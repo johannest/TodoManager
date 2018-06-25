@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datasources xmlns="http://www.jboss.org/ironjacamar/schema">
+	<!-- Use an in-memory H2 database. -->
+	<!-- Delete this file and define the datasource in the server before going 
+		into production. -->
+	<datasource jndi-name="TodoDS"
+		pool-name="TodoDSPool" enabled="true" use-java-context="true">
+		<connection-url>jdbc:h2:mem:theapp</connection-url>
+		<driver>h2</driver>
+		<security>
+			<user-name>sa</user-name>
+			<password></password>
+		</security>
+	</datasource>
+</datasources>

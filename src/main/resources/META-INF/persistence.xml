@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+             http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd"
+	version="2.1">
+
+	<persistence-unit name="TodoPersistenceUnit"
+		transaction-type="JTA">
+		<!-- The data source to use, typically specified in the server configuration. 
+			To make it easy to get started, an in-memory data source for TomEE is specified 
+			in resources.xml and an in-memory data source for Wildfly is specified in 
+			wildfly-h2-ds.xml. These should be deleted before going into production. -->
+		<jta-data-source>TodoDS</jta-data-source>
+		<properties>
+			<!-- Automatically drop and create the database on startup. Change this 
+				before going into production. -->
+			<property name="javax.persistence.schema-generation.database.action"
+				value="drop-and-create" />
+			<property
+				name="javax.persistence.schema-generation.create-database-schemas"
+				value="true" />
+
+			<!-- These are used when using Hibernate (e.g. on Wildfly) -->
+			<property name="hibernate.dialect" value="org.hibernate.dialect.H2Dialect" />
+			<property name="hibernate.show_sql" value="true" />
+		</properties>
+	</persistence-unit>
+
+</persistence>
+	

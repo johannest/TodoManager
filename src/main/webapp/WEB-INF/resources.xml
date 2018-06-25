@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Used for TomEE -->
+<!-- Delete this file and define the datasource in the server before going 
+	into production. -->
+<resources>
+	<!-- CDATA wrapping is only to prevent Eclipse formatting from breaking 
+		the contents by wrapping lines differently -->
+	<Resource id="TodoDS" type="javax.sql.DataSource">![CDATA[
+		JdbcDriver org.h2.Driver
+		JdbcUrl jdbc:h2:mem:theapp
+		UserName sa
+		Password
+		]]
+	</Resource>
+</resources>

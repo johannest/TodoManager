@@ -1,0 +1,231 @@
+<link rel="import" href="bower_components/polymer/polymer-element.html">
+<link rel="import" href="bower_components/vaadin-button/vaadin-button.html">
+<link rel="import" href="bower_components/vaadin-combo-box/vaadin-combo-box.html">
+<link rel="import" href="bower_components/vaadin-dialog/vaadin-dialog.html">
+<link rel="import" href="bower_components/vaadin-text-field/vaadin-text-field.html">
+<link rel="import" href="./data/store.html">
+
+<dom-module id="todo-editor">
+  <template>
+    <vaadin-dialog id="dialog" no-close-on-esc no-close-on-outside-click opened="[[_isDialogOpened(_todo)]]">
+      <template>
+        <style>
+          .wrapper {
+            display: flex;
+            margin-top: var(--lumo-space-s);
+          }
+
+          #form {
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+          }
+
+          #upload {
+            margin-left: var(--lumo-space-l);
+          }
+
+          .buttons vaadin-button {
+            margin-right: var(--lumo-space-m);
+          }
+
+          img {
+            max-width: 350px;
+          }
+
+          @media (max-width: 900px) {
+            [part~="overlay"] {
+              align-self: stretch;
+              border-radius: 0;
+            }
+
+            #upload {
+              margin: 10px 0;
+            }
+
+            .wrapper {
+              flex-direction: column;
+            }
+
+            .receipt-wrapper img {
+              max-width: 100%;
+            }
+          }
+        </style>
+
+        <h2>[[_getCaption(_todo)]]</h2>
+
+        <div class="wrapper">
+          <div id="form">
+            <vaadin-text-field name="todo" value="{{_todo.text}}" label="Todo" required></vaadin-text-field>
+            <vaadin-checkbox name="completed" aria-label="Completed" checked="{{_todo.completed}}">Completed</vaadin-checkbox>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <vaadin-button on-click="_save" theme="primary" class="save-button">Save</vaadin-button>
+          <vaadin-button on-click="close" class="cancel-button">Cancel</vaadin-button>
+          <vaadin-button on-click="_delete" id="delete" theme="tertiary error" class="delete-button" hidden="[[!_showDelete(_todo)]]">Delete</vaadin-button>
+        </div>
+        <span>[[_errorText]]</span>
+      </template>
+    </vaadin-dialog>
+  </template>
+
+  <script>
+      (function() {
+      class TodoEditorElement extends TodoManager.ReduxMixin(Polymer.Element) {
+        static get is() {
+          return 'todo-editor';
+        }
+
+        static get properties() {
+          return {
+
+            /**
+             * The originally selected todo.
+             * @type {Object}
+             */
+            _sourceTodo: {
+              type: Object,
+              statePath: 'todos.selectedTodo',
+              observer: '_todoChanged'
+            },
+
+            /**
+             * The todo used for modifications.
+             * @type {Object}
+             */
+            _todo: Object,
+
+            /**
+             * The text to show in case if some fields are invalid.
+             */
+            _errorText: String
+          };
+        }
+
+        _receiptSrc(url) {
+          return /^(https?|data):/i.test(url) ? url : (this.rootPath + url);
+        }
+
+        /**
+         * @param {Object|null} srcTodo the selected todo, if any.
+         */
+        _todoChanged(srcTodo) {
+          if (srcTodo) {
+            this._todo = Object.assign({}, srcTodo);
+
+            // const upload = this._getDialogChild('vaadin-upload');
+            // upload.set('i18n.dropFiles.one', 'Drop receipt here...');
+            // upload.set('i18n.addFiles.one', 'Select receipt');
+            // upload.files = [];
+
+            // Ensure that the scroll is returned to top on mobile
+            setTimeout(() => {
+              this.$.dialog.scrollTop = 0;
+            }, 0);
+          } else {
+            this._todo = null;
+          }
+        }
+
+        /**
+         * Specifies whether the dialog is opened.
+         *
+         * @param {{id:string, status:string}=} todo optional. The todo to edit.
+         * @return {boolean} true if dialog is opened.
+         */
+        _isDialogOpened(todo) {
+          return typeof todo === 'object' && todo !== null;
+        }
+
+        /**
+         * Checks the form for validity.
+         *
+         * @return {boolean} true if all the fields are valid.
+         */
+        _isValid() {
+          return this._getFormFields().every(el => el.validate());
+        }
+
+        /**
+         * Returns the result of `querySelector` for the dialog content.
+         *
+         * @param {string} selector a CSS selector to use
+         * @return {HTMLElement} a list of form elements.
+         */
+        _getDialogChild(selector) {
+          return this.$.dialog.$.overlay.content &&
+                    this.$.dialog.$.overlay.content.querySelector(selector);
+        }
+
+        /**
+         * Collects the list of the form fields.
+         *
+         * @return {Array<HTMLElement>} a list of form elements.
+         */
+        _getFormFields() {
+          return Array.from(this._getDialogChild('#form').children).filter(el => typeof el.validate === 'function');
+        }
+
+        /**
+         * Specifies whether the "delete" button should be displayed or not.
+         *
+         * @param {{id:string, status:string}=} todo optional. The todo to edit.
+         * @return {boolean} true if todo has been changed.
+         */
+        _showDelete(todo) {
+          return todo && todo.id;
+        }
+
+        /**
+         * Closes the editor.
+         */
+        close() {
+          this.dispatch('cancelEdit');
+        }
+
+        /**
+         * Returns the caption for the submit button based on the editing todo state.
+         *
+         * @param {{id:string}} todo optional. The todo to edit.
+         * @return {string} caption for the editor.
+         */
+        _getCaption(todo) {
+          if (todo && todo.id) {
+            return 'Edit Todo';
+          } else {
+            return 'Add Todo';
+          }
+        }
+
+        /**
+         * Saves the todo, if all fields are valid, and sets the error text otherwise.
+         */
+        _save() {
+          this._errorText = '';
+          if (this._isValid()) {
+            this.dispatch('saveTodo', this._todo);
+          } else {
+            this.$.dialog.scrollTop = 0;
+            this._errorText = 'Please fill all required fields';
+          }
+        }
+
+        /**
+         * Deletes the todo.
+         */
+        _delete() {
+          this.dispatch('deleteTodo', this._todo);
+        }
+      }
+      customElements.define(TodoEditorElement.is, TodoEditorElement);
+      /**
+       * @namespace TodoManager
+       */
+      window.TodoManager = window.TodoManager || {};
+      TodoManager.TodoEditorElement = TodoEditorElement;
+      })();
+  </script>
+</dom-module>

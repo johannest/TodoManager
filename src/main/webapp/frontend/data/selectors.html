@@ -1,0 +1,52 @@
+<link rel="import" href="constants.html">
+<script src="../reselect.min.js"></script>
+
+<script>
+  (() => {
+
+    const getTodos = state => state.todos.todos;
+    const getFilters = state => state.filters.filters;
+
+    const todos = Reselect.createSelector(
+      [getTodos, getFilters],
+      (todos, filters) => {
+        const status = filters.status;
+
+        return todos
+          .filter(tod => {
+            if (status && status.length > 0 ) {
+                if (tod.completed && status.includes('completed')) {
+                    return true;
+                }
+                if (!tod.completed && status.includes('not_completed')) {
+                    return true;
+                }
+            }
+            return false;
+          });
+      });
+
+    const appliedFilters = Reselect.createSelector([getFilters], filters => {
+      let numFilters = 0;
+
+      Object.keys(filters).forEach(f => {
+        const filter = filters[f];
+        if (filter) {
+          if (Array.isArray(filter)) {
+            numFilters += TodoManager.constants.statuses.length - filter.length;
+          } else {
+            numFilters++;
+          }
+        }
+      });
+      return numFilters;
+    });
+
+    window.TodoManager = window.TodoManager || {};
+    window.TodoManager.select = {
+        todos,
+        appliedFilters
+    };
+  })();
+
+</script>

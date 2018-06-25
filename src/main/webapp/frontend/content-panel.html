@@ -1,0 +1,46 @@
+<link rel="import" href="bower_components/polymer/polymer-element.html">
+<link rel="import" href="todos-list.html">
+<link rel="import" href="responsive-mixin.html">
+
+<dom-module id="content-panel">
+  <template>
+    <style>
+      :host {
+        display: flex;
+        height: 100%;
+      }
+
+      :host([tablet]) {
+        flex-direction: column;
+      }
+
+      todos-list {
+        flex: 1;
+        height: 100%;
+      }
+
+    </style>
+    <todos-list></todos-list>
+  </template>
+  <script>
+    (function() {
+      /**
+       * @memberof TodoManager
+       * @mixes TodoManager.ResponsiveMixin
+       */
+      class ContentPanelElement extends TodoManager.ResponsiveMixin(Polymer.Element) {
+        static get is() {
+          return 'content-panel';
+        }
+      }
+
+      customElements.define(ContentPanelElement.is, ContentPanelElement);
+
+      /**
+       * @namespace TodoManager
+       */
+      window.TodoManager = window.TodoManager || {};
+      TodoManager.ContentPanelElement = ContentPanelElement;
+    })();
+  </script>
+</dom-module>

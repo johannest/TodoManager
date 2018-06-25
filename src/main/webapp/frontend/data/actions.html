@@ -1,0 +1,75 @@
+<script>
+  (() => {
+
+    const editTodo = (todo = {}) => {
+      return {
+        type: 'EDIT_TODO',
+        todo
+      };
+    };
+
+    const deleteTodo = (todo) => {
+      return {
+        type: 'DELETE_TODO',
+        todo
+      };
+    };
+
+    const saveTodo = (todo) => {
+      if (todo.id) {
+        return {
+          type: 'UPDATE_TODO',
+          todo
+        };
+      } else {
+        return {
+          type: 'ADD_TODO',
+          todo: Object.assign({}, todo, {
+            id: null,
+            completed: false
+          })
+        };
+      }
+    };
+
+    const refreshTodos = () => {
+      return {type: 'REFRESH_TODOS'};
+    };
+
+    const cancelEdit = () => {
+      return {type: 'CANCEL_EDIT'};
+    };
+
+    const clearFilters = () => {
+      return {type: 'CLEAR_FILTERS'};
+    };
+
+    const toggleFilters = () => {
+      return {type: 'TOGGLE_FILTERS'};
+    };
+
+    const hideFilters = () => {
+      return {type: 'HIDE_FILTERS'};
+    };
+
+    const filtersUpdated = filters => {
+      return {
+        type: 'FILTERS_UPDATED',
+        filters
+      };
+    };
+
+    window.TodoManager = window.TodoManager || {};
+    window.TodoManager.actions = {
+      refreshTodos,
+      editTodo,
+      deleteTodo,
+      saveTodo,
+      cancelEdit,
+      clearFilters,
+      toggleFilters,
+      hideFilters,
+      filtersUpdated
+    };
+  })();
+</script>

@@ -1,0 +1,120 @@
+<script src="../redux.min.js"></script>
+
+<script>
+  (() => {
+    let savedState = localStorage.getItem('TodoManagerState');
+    if (savedState) {
+      savedState = JSON.parse(savedState);
+    }
+
+    function todosReducer(state = {
+      todos: savedState ? savedState.todos.todos : _generateDemoTodos(1),
+      selectedTodo: undefined
+    }, action) {
+
+      var todoMvc = document.querySelector('todo-mvc');
+
+      switch (action.type) {
+
+        case 'REFRESH_TODOS':
+          return Object.assign({}, state, {
+              todos: todoMvc.todolist,
+                selectedTodo: undefined
+            });
+
+        case 'EDIT_TODO':
+            return Object.assign({}, state, {selectedTodo: action.todo});
+
+        case 'UPDATE_TODO':
+
+          var newState = Object.assign({}, state, {
+            todos: state.todos.map(t => {
+              return t.id === action.todo.id ? action.todo : t;
+            }),
+            selectedTodo: undefined
+          });
+
+          todoMvc.syncServerIfOnline("update", action.todo);
+
+          return newState;
+
+        case 'ADD_TODO':
+
+          todoMvc.syncServerIfOnline("add", action.todo);
+
+          return Object.assign({}, state, {
+              todos: state.todos.concat(action.todo),
+              selectedTodo: undefined
+          });
+
+        case 'DELETE_TODO':
+          var newTodos = state.todos.filter(e => e.id !== action.todo.id);
+          var newState =  Object.assign({}, state, {
+              todos: newTodos,
+              selectedTodo: undefined
+          });
+
+
+          todoMvc.syncServerIfOnline("remove", action.todo);
+
+          return newState;
+
+        case 'CANCEL_EDIT':
+          return Object.assign({}, state, {selectedTodo: undefined});
+
+        default:
+          return state;
+      }
+    }
+
+    function filtersReducer(state = {
+      filters: {status: ['not_completed','completed']}
+    }, action) {
+      switch (action.type) {
+
+        case 'TOGGLE_FILTERS':
+          return Object.assign({}, state, {filtersVisible: !state.filtersVisible});
+
+        case 'HIDE_FILTERS':
+          return Object.assign({}, state, {filtersVisible: false});
+
+        case 'FILTERS_UPDATED':
+          return Object.assign({}, state, {filters: action.filters});
+
+        case 'CLEAR_FILTERS':
+          return Object.assign({}, state, {
+            filters: {status: ['not_completed', 'completed']}
+          });
+
+        default:
+          return state;
+      }
+    }
+
+    window.TodoManager = window.TodoManager || {};
+    window.TodoManager.rootReducer = Redux.combineReducers({
+      todos: todosReducer,
+      filters: filtersReducer
+    });
+
+    function _generateDemoTodos(num) {
+        console.log("_generateDemoTodos")
+      const todos = [];
+        for (let i = 0; i < num; i++) {
+            var status = 'new';
+            if (i > 2) {
+                status = 'completed';
+            }
+            todos.push({
+                id: null,
+                completed: status==='completed',
+                text: 'Todo'
+            });
+        }
+      return todos;
+    }
+
+
+  })();
+
+</script>

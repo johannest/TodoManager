@@ -1,0 +1,40 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../bower_components/polymer-redux/polymer-redux.html">
+<link rel="import" href="actions.html">
+<link rel="import" href="selectors.html">
+<link rel="import" href="constants.html">
+<link rel="import" href="reducers.html">
+
+<script>
+  (() => {
+    const composeEnhancers = typeof window === 'object' && window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__
+      ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({})
+      : Redux.compose;
+
+    const enhancer = composeEnhancers();
+    const store = Redux.createStore(TodoManager.rootReducer, enhancer);
+
+    store.subscribe(() => {
+      const state = store.getState();
+      localStorage.setItem('TodoManagerState', JSON.stringify(state));
+    });
+
+    const reduxMixin = PolymerRedux(store);
+
+    /* @mixinFunction */
+    const actionsMixin = (superClass) => {
+      return class ReduxMixin extends reduxMixin(superClass) {
+        static get actions() {
+          return window.TodoManager.actions;
+        }
+      };
+    };
+
+    /**
+     * @namespace TodoManager
+     */
+    window.TodoManager = window.TodoManager || {};
+    /* @mixinFunction */
+    window.TodoManager.ReduxMixin = Polymer.dedupingMixin(actionsMixin);
+  })();
+</script>

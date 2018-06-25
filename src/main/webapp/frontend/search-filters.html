@@ -1,0 +1,153 @@
+<link rel="import" href="bower_components/polymer/polymer-element.html">
+<link rel="import" href="bower_components/vaadin-text-field/vaadin-text-field.html">
+<link rel="import" href="bower_components/vaadin-lumo-styles/color.html">
+<link rel="import" href="bower_components/vaadin-lumo-styles/spacing.html">
+<link rel="import" href="option-group.html">
+
+<link rel="import" href="data/store.html">
+<link rel="import" href="data/constants.html">
+
+<link rel="import" href="responsive-mixin.html">
+<link rel="import" href="shared-styles.html">
+
+<dom-module id="search-filters">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+        padding: var(--lumo-space-wide-l);
+        width: inherit;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      :host([phone]) {
+        width: auto;
+        padding: 0 var(--lumo-space-m);
+      }
+
+      :host([phone]) .filters {
+        width: auto;
+      }
+
+      .title:not([hidden]) {
+        display: flex;
+      }
+
+      .buttons:not([hidden]) {
+        display: flex;
+        justify-content: space-between;
+        margin-top: var(--lumo-space-l);
+      }
+
+      .filters {
+        display: flex;
+        flex-direction: column;
+        padding-bottom: var(--lumo-space-m);
+      }
+
+      .row {
+        display: flex;
+        align-items: baseline;
+      }
+
+      .row vaadin-text-field {
+        min-width: 0;
+        flex: auto;
+      }
+
+      .row .delimiter {
+        padding: 0 var(--lumo-space-s);
+      }
+
+      .title {
+        justify-content: space-between;
+        align-items: baseline;
+      }
+    </style>
+
+    <div class="filters">
+      <div class="title section-title" hidden="[[phone]]">
+        <span>Filter Todos</span>
+        <vaadin-button on-click="_clearFilters" theme="tertiary-inline small">Clear Filters</vaadin-button>
+      </div>
+      <option-group caption="Show Todos with status:" value="{{filters.status}}" items="[[statusOptions]]" label-path="label" value-path="name"></option-group>
+      <div class="buttons" hidden="[[!phone]]">
+        <vaadin-button on-click="_clearFilters" theme="tertiary">Clear Filters</vaadin-button>
+        <vaadin-button on-click="_hideFilters">Done</vaadin-button>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    (function() {
+      /**
+       * @memberof TodoManager
+       * @mixes TodoManager.ResponsiveMixin
+       */
+      class SearchFiltersElement extends TodoManager.ReduxMixin(TodoManager.ResponsiveMixin(Polymer.Element)) {
+        static get is() {
+          return 'search-filters';
+        }
+
+        static get properties() {
+          return {
+            /**
+             * The list of original filters.
+             */
+            srcFilters: {
+              type: Object,
+              statePath: 'filters.filters',
+              observer: '_srcFiltersChanged'
+            },
+
+            /**
+             * The list of filters modified by user.
+             */
+            filters: Object,
+
+            /**
+             * The list of available statuses.
+             * @type {Array<{name: string, label: string}>}
+             */
+            statusOptions: {
+              type: Array,
+              value: () => TodoManager.constants.statuses
+            }
+          };
+        }
+
+        static get observers() {
+          return ['_filtersChanged(filters.*)'];
+        }
+
+        _srcFiltersChanged(srcFilters) {
+          this.filters = Object.assign({}, srcFilters);
+        }
+
+        _filtersChanged() {
+          // Ugh. Will do as a object equals
+          if (JSON.stringify(this.filters) !== JSON.stringify(this.srcFilters)) {
+            this.dispatch('filtersUpdated', this.filters);
+          }
+        }
+
+        _hideFilters() {
+          this.dispatch('hideFilters');
+        }
+
+        _clearFilters() {
+          this.dispatch('clearFilters');
+        }
+      }
+
+      customElements.define(SearchFiltersElement.is, SearchFiltersElement);
+
+      /**
+       * @namespace TodoManager
+       */
+      window.TodoManager = window.TodoManager || {};
+        TodoManager.SearchFiltersElement = SearchFiltersElement;
+    })();
+  </script>
+</dom-module>

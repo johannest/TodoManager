@@ -1,0 +1,282 @@
+<link rel="import" href="bower_components/polymer/polymer.html">
+<link rel="import" href="bower_components/vaadin-button/vaadin-button.html">
+<link rel="import" href="bower_components/vaadin-notification/vaadin-notification.html">
+<link rel="import" href="bower_components/vaadin-lumo-styles/color.html">
+<link rel="import" href="bower_components/app-layout/app-header-layout/app-header-layout.html">
+<link rel="import" href="bower_components/app-layout/app-header/app-header.html">
+
+<link rel="import" href="./data/store.html">
+
+<link rel="import" href="nav-bar.html">
+<link rel="import" href="todo-editor.html">
+<link rel="import" href="content-panel.html">
+<link rel="import" href="filters-toolbar.html">
+<link rel="import" href="responsive-mixin.html">
+<link rel="import" href="icons.html">
+<link rel="import" href="bower_components/iron-media-query/iron-media-query.html">
+
+<dom-module id="todo-mvc">
+    <template>
+        <style include="lumo-color">
+            :host {
+                display: block;
+            }
+            :host([phone]) .content {
+                flex-direction: column;
+            }
+            .banner {
+                background: lightyellow;
+                width: 100%;
+                padding: 1em;
+                border: 1px solid gray;
+            }
+
+            .top {
+                text-align: center;
+            }
+
+            .content {
+                display: flex;
+                flex: auto;
+                height: 0.001px;
+                background: var(--lumo-base-color);
+            }
+
+            filters-toolbar[phone] {
+                width: auto;
+                box-shadow: var(--lumo-shade-50pct) 0 -10px 6px -10px inset;
+            }
+
+            filters-toolbar {
+                width: 300px;
+                box-shadow: inset -4px 0 16px -9px var(--lumo-shade-50pct);
+            }
+
+            @media (max-width: 1124px) {
+                .content {
+                    padding-right: 0;
+                }
+            }
+
+            content-panel {
+                flex: 1;
+            }
+        </style>
+        <div class="top banner" hidden$="{{appOnline}}">You are offline
+            <button on-click="goOnline" hidden$="[[!goOnlineVisible]]">Go online</button>
+        </div>
+        <app-header-layout fullbleed>
+            <app-header slot="header" fixed condenses>
+                <nav-bar theme="dark"></nav-bar>
+            </app-header>
+
+            <div class="content">
+                <filters-toolbar phone="[[phone]]" tablet="[[tablet]]"></filters-toolbar>
+                <content-panel phone="[[phone]]" tablet="[[tablet]]"></content-panel>
+            </div>
+        </app-header-layout>
+        <iron-media-query
+                query="(max-width: 900px)"
+                query-matches="{{phone}}">
+        </iron-media-query>
+
+        <iron-media-query
+                query="(max-width: 1124px)"
+                query-matches="{{tablet}}">
+        </iron-media-query>
+
+        <todo-editor></todo-editor>
+        <div class="banner" hidden$="[[appOnline]]">Debug, pending events:
+            <div inner-h-t-m-l="[[queueDebug]]"></div>
+        </div>
+        <vaadin-notification id="info" delay=2000>
+            <template>Offline changes have been merged</template>
+        </vaadin-notification>
+    </template>
+    <script>
+        (function() {
+        class TodoMvc extends TodoManager.ReduxMixin(Polymer.Element) {
+            static get is() {
+                return 'todo-mvc';
+            }
+            static get properties() {
+                // These are purely client side UI logic properties
+                return {
+                    "todolist": {
+                        type: Array,
+                        observer: 'storeTodosLocally'
+                        //statePath: TodoManager.select.todos
+                    },
+                    "networkOnline": {
+                        type: Boolean,
+                        value: navigator.onLine,
+                        observer: 'onNetworkOnlineChange'
+                    },
+                    "appOnline": {
+                        type: Boolean,
+                        computed: 'isAppOnline(networkOnline)'
+                    },
+                    "queue": {
+                        type: Array,
+                        value: JSON.parse(localStorage.getItem("pendingQueue")) || []
+                    },
+                    "queueDebug": {
+                        type: String,
+                        computed: 'calcQueueDebug(queue.splices)'
+                    },
+                    "goOnlineVisible": {
+                        type: Boolean,
+                        computed: 'isGoOnlineVisible(networkOnline)'
+                    }
+                }
+            }
+
+            _showTodoEditor() {
+                this.dispatch('editTodo');
+            }
+
+            /**
+             * @param {Object|null} todo the selected todo, if any.
+             */
+            _activeItemChanged(todo) {
+                if (this.todos && this.todos.length > 0) { // don't trigger on init
+                    this.$.todos.selectedItems = todo ? [todo] : [];
+                    this.dispatch('editTodo', todo);
+                }
+            }
+
+            connectedCallback() {
+                super.connectedCallback();
+                var self = this;
+                window.addEventListener("online", e => {
+                    this.networkOnline = navigator.onLine;
+                });
+                window.addEventListener("offline", e => {
+                    this.networkOnline = navigator.onLine;
+                });
+
+                if (!this.networkOnline) {
+                    this.restoreLocalTodos();
+                }
+            }
+
+            goOnline() {
+                // Reload will cause Flow to be started and the queue synced from localstorage
+                window.location.reload();
+            }
+            isGoOnlineVisible(networkOnline) {
+                // Started offline, now online. Need a refresh to sync 
+                // but doing it immediately would interrupt the user
+                return networkOnline && !this.appOnline;
+            }
+
+            onNetworkOnlineChange() {
+                if (!this.networkOnline) {
+                    return;
+                }
+                if (!this.appOnline) {
+                    // Started offline, now online. Need a refresh to sync 
+                    // but doing it immediately would interrupt the user
+                    return;
+                }
+                if (this.queue.length > 0) {
+                        this.processCommands(this.queue);
+                        localStorage.removeItem("pendingQueue");
+                        this.set("queue", []);
+                        this.$.info.open();
+                        this.$server.resync();
+                    }
+            }
+            isAppOnline(networkOnline) {
+                return networkOnline && this.flowStarted();
+            }
+            processCommands(commands) {
+                for (var i = 0; i < commands.length; i++) {
+                    const cmd = commands[i];
+                    if (cmd.cmd === "add") {
+                        this.$server.addTodo(cmd.todo.text, cmd.todo.completed);
+                        this.$server.resync();
+                    } else if (cmd.cmd === "updateTodo") {
+                        this.$server.updateTodoText(cmd.todo, cmd.todo.text);
+                        this.$server.markCompleted(cmd.todo, cmd.todo.completed);
+                    } else if (cmd.cmd === "markCompleted") {
+                        this.$server.markCompleted(cmd.todo, cmd.completed);
+                    } else if (cmd.cmd === "remove") {
+                        this.$server.removeTodo(cmd.todo);
+                    } else {
+                        console.error("Unknown command:" + cmd.cmd);
+                    }
+                }
+            }
+
+            executeOrQueue(command) {
+                if (this.appOnline) {
+                    this.processCommands([command]);
+                    return true;
+                } else {
+                    this.push("queue", command);
+                    localStorage.setItem("pendingQueue", JSON.stringify(this.queue));
+                    return false;
+                }
+            }
+
+            calcQueueDebug(splices) {
+                if (this.queue.length == 0)
+                    return "";
+                return "<ul><li>" + this.queue.map(cmd => {
+                    if (cmd.cmd === "add") {
+                        return "Add " + cmd.text;
+                    } else if (cmd.cmd === "updateTodo") {
+                        return "Update " + cmd.text + " to " + cmd.text;
+                    } else if (cmd.cmd === "markCompleted") {
+                        if (cmd.completed)
+                            return "Mark " + cmd.todo.text + " complete";
+                        else
+                            return "Mark " + cmd.todo.text + " active";
+                    } else if (cmd.cmd === "remove") {
+                        return "Remove " + cmd.todo.text;
+                    } else {
+                        return "???";
+                    }
+                    cmd.cmd + " " + cmd.text
+                }).join("<li>") + "</ul>";
+            }
+
+            flowStarted() {
+                return !!window.Vaadin.Flow;
+            }
+            storeTodosLocally() {
+                console.log("--storeTodosLocally-->");
+                console.log(this.todolist);
+                this.dispatch('refreshTodos');
+            }
+            restoreLocalTodos() {
+            }
+            syncServerIfOnline(cmd, todoItem) {
+                if (cmd === "add") {
+                    const serverUpdated = this.executeOrQueue({cmd: "add", todo: todoItem});
+                    if (!serverUpdated) {
+                        this.push("todolist", todoItem);
+                    }
+                }
+                if (cmd === "update") {
+                    this.executeOrQueue({cmd: "updateTodo", todo: todoItem});
+                }
+                if (cmd === "remove") {
+                    const serverUpdated = this.executeOrQueue({cmd: "remove", todo: todoItem});
+                    if (!serverUpdated) {
+                        this.splice("todolist", this.todolist.indexOf(todoItem), 1);
+                    }
+                }
+            }
+        }
+        customElements.define(TodoMvc.is, TodoMvc);
+
+        /**
+         * @namespace TodoManager
+         */
+        window.TodoManager = window.TodoManager || {};
+        TodoManager.TodoMvc = TodoMvc;
+        })();
+    </script>
+</dom-module>

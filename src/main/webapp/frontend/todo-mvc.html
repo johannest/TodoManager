@@ -7,13 +7,7 @@
 
 <link rel="import" href="./data/store.html">
 
-<link rel="import" href="nav-bar.html">
-<link rel="import" href="todo-editor.html">
-<link rel="import" href="content-panel.html">
-<link rel="import" href="filters-toolbar.html">
-<link rel="import" href="responsive-mixin.html">
-<link rel="import" href="icons.html">
-<link rel="import" href="bower_components/iron-media-query/iron-media-query.html">
+<link rel="import" href="overview-page.html">
 
 <dom-module id="todo-mvc">
     <template>
@@ -21,74 +15,10 @@
             :host {
                 display: block;
             }
-            :host([phone]) .content {
-                flex-direction: column;
-            }
-            .banner {
-                background: lightyellow;
-                width: 100%;
-                padding: 1em;
-                border: 1px solid gray;
-            }
-
-            .top {
-                text-align: center;
-            }
-
-            .content {
-                display: flex;
-                flex: auto;
-                height: 0.001px;
-                background: var(--lumo-base-color);
-            }
-
-            filters-toolbar[phone] {
-                width: auto;
-                box-shadow: var(--lumo-shade-50pct) 0 -10px 6px -10px inset;
-            }
-
-            filters-toolbar {
-                width: 300px;
-                box-shadow: inset -4px 0 16px -9px var(--lumo-shade-50pct);
-            }
-
-            @media (max-width: 1124px) {
-                .content {
-                    padding-right: 0;
-                }
-            }
-
-            content-panel {
-                flex: 1;
-            }
         </style>
-        <div class="top banner" hidden$="{{appOnline}}">You are offline
-            <button on-click="goOnline" hidden$="[[!goOnlineVisible]]">Go online</button>
-        </div>
-        <app-header-layout fullbleed>
-            <app-header slot="header" fixed condenses>
-                <nav-bar theme="dark"></nav-bar>
-            </app-header>
 
-            <div class="content">
-                <filters-toolbar phone="[[phone]]" tablet="[[tablet]]"></filters-toolbar>
-                <content-panel phone="[[phone]]" tablet="[[tablet]]"></content-panel>
-            </div>
-        </app-header-layout>
-        <iron-media-query
-                query="(max-width: 900px)"
-                query-matches="{{phone}}">
-        </iron-media-query>
+        <overview-page></overview-page>
 
-        <iron-media-query
-                query="(max-width: 1124px)"
-                query-matches="{{tablet}}">
-        </iron-media-query>
-
-        <todo-editor></todo-editor>
-        <div class="banner" hidden$="[[appOnline]]">Debug, pending events:
-            <div inner-h-t-m-l="[[queueDebug]]"></div>
-        </div>
         <vaadin-notification id="info" delay=2000>
             <template>Offline changes have been merged</template>
         </vaadin-notification>
@@ -129,10 +59,6 @@
                         computed: 'isGoOnlineVisible(networkOnline)'
                     }
                 }
-            }
-
-            _showTodoEditor() {
-                this.dispatch('editTodo');
             }
 
             /**

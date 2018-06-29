@@ -25,7 +25,7 @@ import com.vaadin.flow.templatemodel.TemplateModel;
 @Tag("todo-mvc")
 @HtmlImport("todo-mvc.html")
 @Route("")
-@Viewport("width=device-width, initial-scale=1.0")
+@Viewport("width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes")
 @Push
 public class TodoMvcView extends PolymerTemplate<TodoMvcView.TodoMvcModel> implements PageConfigurator {
 

@@ -29,6 +29,17 @@
         box-shadow: var(--lumo-box-shadow-m);
         border-radius: 50%;
       }
+
+      #todos {
+        flex: auto;
+        height: 0.001px;
+        border: 0;
+      }
+
+      vaadin-grid#todos .cell.last {
+        padding-right: 24px;
+      }
+
     </style>
 
     <vaadin-grid items="[[todos]]" id="todos" active-item="{{activeItem}}">
